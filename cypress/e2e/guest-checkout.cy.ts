@@ -17,9 +17,13 @@ describe('Guest checkout', () => {
   const confirm = new CheckoutConfirmPage();
   const finish = new OrderFinishPage();
 
-  beforeEach(() => {
-    // Cypress 12+ clears cookies and local storage between tests, so every test
-    // starts as a genuinely new visitor. That is exactly what a guest flow needs.
+    beforeEach(() => {
+    // Cypress clears cookies and local storage between tests, but this suite
+    // places a real order in TC-P-01, and Shopware also tracks the session
+    // server-side. Clearing explicitly reduces the chance that the second test
+    // inherits a session and gets routed past the register form.
+    cy.clearCookies();
+    cy.clearLocalStorage();
     home.open();
   });
 
