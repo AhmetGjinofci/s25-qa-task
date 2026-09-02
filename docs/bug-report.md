@@ -2,6 +2,8 @@
 
 ## BUG-001 — Checkout accepts an invalid German postcode and creates an undeliverable order
 
+**Found by:** TC-E-01 in the [test plan](test-plan.md).
+
 The billing address form performs no format validation on the postcode field.
 A six-digit value is accepted for a German address and the order completes
 successfully, producing an order that cannot be delivered.
@@ -12,7 +14,7 @@ successfully, producing an order that cannot be delivered.
 | ------------------ | ---------------------------------------------------------------- |
 | **URL**            | https://www.shopware6-demo.development-s25.com/checkout/register |
 | **Browser**        | Chrome 152                                                       |
-| **OS**             | macOS [your version]                                             |
+| **OS**             | macOS Tahoe 26.6.2                                               |
 | **Viewport**       | 1440 x 900                                                       |
 | **Date**           | 02.09.2026                                                       |
 | **Order produced** | 10903                                                            |
@@ -21,7 +23,7 @@ successfully, producing an order that cannot be delivered.
 
 1. Open the storefront and add any product to the cart.
 2. Click "Zur Kasse" to reach the checkout.
-3. Leave "Kundenkonto anlegen" unchecked to continue as a guest.
+3. Untick "Kundenkonto anlegen" to continue as a guest.
 4. Fill the form with valid data except the postcode:
    - Vorname: Ahmet, Nachname: Test
    - E-Mail: a unique address
@@ -48,9 +50,9 @@ The value is accepted without any warning. The form advances to
 delivery and billing address, and submitting produces order number 10903 with
 that address stored.
 
-The same lack of validation was confirmed earlier with `doqwndlqwd` entered as
-the city (order 10902), which suggests address fields are not validated for
-format at all, only for presence.
+The same lack of validation was confirmed with `doqwndlqwd` entered as the city
+(order 10902), which suggests address fields are validated for presence only,
+never for format.
 
 ### Severity: Medium
 
@@ -64,8 +66,9 @@ back office.
 
 ### Attachments
 
-- `order-10903-invalid-postcode.png`
-- `order-10902-invalid-city.png`
+![Order 10903 created with postcode 321231](screenshots/order-10903-invalid-postcode.png)
+
+![Order 10902 created with postcode 321231 and city doqwndlqwd](screenshots/order-10902-invalid-city.png)
 
 ---
 
@@ -73,19 +76,29 @@ back office.
 
 ## BUG-002 — Cart quantity validation messages render in the browser's language, not the storefront's
 
+**Found by:** TC-E-02 in the [test plan](test-plan.md).
+
 The quantity field on the cart page relies on the HTML `min` and `max`
-attributes with no custom validation message, so the browser generates the
-error text in its own UI language rather than the storefront's.
+attributes with no custom validation message, so the browser generates the error
+text in its own UI language rather than the storefront's.
 
 ### Environment
 
-Same as above, on `/checkout/cart`.
+|              |                                                              |
+| ------------ | ------------------------------------------------------------ |
+| **URL**      | https://www.shopware6-demo.development-s25.com/checkout/cart |
+| **Browser**  | Chrome 152                                                   |
+| **OS**       | macOS Tahoe 26.6.2                                           |
+| **Viewport** | 1440 x 900                                                   |
+| **Date**     | 02.09.2026                                                   |
 
 ### Steps to reproduce
 
 1. Add any product to the cart and open `/checkout/cart`.
-2. Set the quantity field to `0` and commit the change.
-3. Repeat with `999999`.
+2. Set the Anzahl field to `0` and commit the change.
+3. Repeat with `9999999`.
+
+**Reproducibility:** Always.
 
 ### Expected result
 
@@ -100,20 +113,31 @@ German (Warenkorb, Anzahl, Stückpreis, Zusammenfassung).
 
 The cause is visible in the markup:
 
-    <input type="number" name="quantity" min="1" max="100" step="1"
-           aria-label="Anzahl von Demo Produkt" ...>
+```html
+<input
+  type="number"
+  name="quantity"
+  min="1"
+  max="100"
+  step="1"
+  aria-label="Anzahl von Demo Produkt"
+  ...
+/>
+```
 
-The `aria-label` is translated, but there is no `title` attribute or custom
+The `aria-label` is translated, but there is no `title` attribute and no custom
 constraint message, so the text falls back to the browser locale and sits
 entirely outside the store's translation system.
 
 ### Severity: Low
 
-The validation itself works correctly and no invalid quantity reaches the order.
-The impact is limited to inconsistent presentation at a decision point, though
-it affects any customer whose browser language differs from the storefront's.
+The validation itself works correctly and no invalid quantity reaches an order.
+The impact is limited to inconsistent presentation, though it affects any
+customer whose browser language differs from the storefront's, in either
+direction.
 
 ### Attachments
 
-- `quantity-zero-english-message.png`
-- `quantity-max-english-message.png`
+![Quantity 0 rejected with an English message on a German page](screenshots/quantity-zero-english-message.png)
+
+![Quantity 9999999 rejected with an English message on a German page](screenshots/quantity-max-english-message.png)
